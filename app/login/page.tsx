@@ -35,14 +35,14 @@ export default function LoginPage() {
   return (
     <div className="flex items-center justify-center min-h-screen bg-black">
       <Card className="w-[350px] bg-white">
-        <CardHeader>
+        <CardHeader className='text-black'>
           <CardTitle>Login</CardTitle>
           <CardDescription>Enter your credentials to access the dashboard</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">
-              <label htmlFor="username" className="text-sm font-medium">Username</label>
+              <label htmlFor="username" className="text-sm font-medium text-black">Username</label>
               <Input
                 id="username"
                 type="text"
@@ -52,7 +52,7 @@ export default function LoginPage() {
               />
             </div>
             <div className="space-y-2">
-              <label htmlFor="password" className="text-sm font-medium">Password</label>
+              <label htmlFor="password" className="text-sm font-medium text-black">Password</label>
               <Input
                 id="password"
                 type="password"

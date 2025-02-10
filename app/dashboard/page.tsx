@@ -31,7 +31,7 @@ export default function DashboardPage() {
   return (
     <div className="space-y-4">
       {" "}
-      <h1 className="text-2xl font-bold">Dashboard</h1>{" "}
+      <h1 className="text-2xl font-bold text-black">Dashboard</h1>{" "}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {" "}
         <Card className="bg-green-400 text-black">
@@ -44,7 +44,7 @@ export default function DashboardPage() {
           </CardHeader>{" "}
           <CardContent>
             {" "}
-            <div className="text-2xl font-bold">70</div>{" "}
+            <div className="text-2xl font-bold">33</div>{" "}
           </CardContent>{" "}
         </Card>{" "}
         {/* <Card className="bg-gray-300 text-black"> <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"> <CardTitle className="text-sm font-medium">Pengajuan Cuti</CardTitle> </CardHeader> <CardContent> <div className="text-2xl font-bold">5</div> </CardContent> </Card> */}{" "}

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -7,7 +8,7 @@ import * as XLSX from "xlsx"
 import { Button } from "@/components/ui/button"
 import { toast } from "react-hot-toast"
 
-const API_URL = "https://hris-api-kappa.vercel.app/api/v1/overtime?pageSize=200" // Mengubah ke /api/v1/overtime
+const API_URL = "https://hris-api-kappa.vercel.app/api/v1/overtime?pageSize=1000" // Mengubah ke /api/v1/overtime
 const AUTH_TOKEN = "Bearer $2a$12$JSyMjCxUTNmGBlAQOQQeaOFrOdtdUmn.U/17DlvOK1t.Ot0BTRGli"
 
 function getCookie(name: string): string | null {
@@ -20,6 +21,7 @@ function getCookie(name: string): string | null {
 export default function OvertimePage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedDepartment, setSelectedDepartment] = useState("")
+  const [selectedCategory, setSelectedCategory] = useState("")
   const [isAdmin, setIsAdmin] = useState(false)
   const [overtimeRequests, setOvertimeRequests] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -75,7 +77,6 @@ export default function OvertimePage() {
     fetchOvertimeRequests()
   }, [])
 
-  // Modifikasi filter untuk struktur data yang benar dan menambahkan pengurutan
   const filteredRequests = overtimeRequests
     .filter((request: any) => {
       const name = request.data?.overtime_name || ""
@@ -85,20 +86,29 @@ export default function OvertimePage() {
       const dept = request.data?.department || ""
       return selectedDepartment === "" || dept === selectedDepartment
     })
+    .filter((request: any) => {
+      const category = request.data?.category || ""
+      return selectedCategory === "" || category === selectedCategory
+    })
     .sort((a: any, b: any) => {
       const nameA = (a.data?.overtime_name || "").toLowerCase()
       const nameB = (b.data?.overtime_name || "").toLowerCase()
-      return nameA.localeCompare(nameB)
+      const nameComparison = nameA.localeCompare(nameB)
+      if (nameComparison !== 0) {
+        return nameComparison
+      }
+
+      const dateA = new Date(a.data?.date)
+      const dateB = new Date(b.data?.date)
+      return dateA.getTime() - dateB.getTime()
     })
 
-  // Log hasil filter
   console.log("Filtered requests:", filteredRequests)
 
   const totalPages = Math.ceil(overtimeRequests.length / itemsPerPage)
   const paginatedRequests = filteredRequests.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
 
   const exportToExcel = () => {
-    // Menyiapkan data untuk ekspor
     const dataToExport = filteredRequests.map((request: any) => ({
       Employee: request.data.overtime_name,
       Branch: request.data.branch,
@@ -110,19 +120,17 @@ export default function OvertimePage() {
       "Total Hours": request.data.count_time,
       Category: request.data.category,
       "Overtime Pay": request.data.overtime,
-      "Management Approval": request.data.management_approval || "Pending",
-      "HR Approval": request.data.hr_approval || "Pending",
-      "Brand Approval": request.data.brand_approval || "Pending",
+      Reason : request.data.reason,
+      "Management Approval": request.data.management_approval || "✖",
+      "HR Approval": request.data.hr_approval || "✖",
+      "Brand Approval": request.data.brand_approval || "✖",
     }))
 
-    // Membuat workbook baru
     const wb = XLSX.utils.book_new()
     const ws = XLSX.utils.json_to_sheet(dataToExport)
 
-    // Menambahkan worksheet ke workbook
     XLSX.utils.book_append_sheet(wb, ws, "Overtime Data")
 
-    // Menyimpan file
     XLSX.writeFile(wb, "overtime_data.xlsx")
   }
 
@@ -134,42 +142,48 @@ export default function OvertimePage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ id, approvalType }),
-      });
+      })
   
       if (!response.ok) {
-        throw new Error("Gagal menyetujui");
+        throw new Error("Gagal menyetujui")
       }
   
-      // Mengubah status menjadi "Approved" agar sesuai dengan kondisi render
       setOvertimeRequests((prevRequests) =>
         prevRequests.map((req) =>
           req.id === id
             ? { ...req, data: { ...req.data, [`${approvalType}_approval`]: "Approved" } }
             : req
         )
-      );
+      )
   
-      toast.success("Berhasil disetujui");
+      toast.success("Berhasil disetujui")
     } catch (error) {
-      console.error("Error menyetujui permintaan:", error);
-      toast.error("Gagal menyetujui permintaan");
+      console.error("Error menyetujui permintaan:", error)
+      toast.error("Gagal menyetujui permintaan")
     }
-  };
+  }
 
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">Overtime Submission</h1>
+        <h1 className="text-2xl font-bold text-black whitespace-nowrap ml-">Overtime Submission</h1>
         <div className="flex items-center gap-2">
           {isAdmin && (
-            <button onClick={exportToExcel} className="bg-green-500 text-black px-4 py-2 rounded hover:bg-green-600">
+            <button onClick={exportToExcel} className="bg-green-500 text-black px-4 py-2 rounded hover:bg-green-600 whitespace-nowrap ml-2">
               Export to Excel
             </button>
           )}
+          <input
+            type="text"
+            placeholder="Search name..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="border border-black p-1.5 rounded ml-2 text-black"
+          />
           <select
             value={selectedDepartment}
             onChange={(e) => setSelectedDepartment(e.target.value)}
-            className="border border-black p-2 rounded ml-2"
+            className="border border-black p-2 rounded ml-2 text-black"
           >
             <option value="">All Departments</option>
             <option value="Condfe">Condfe</option>
@@ -183,6 +197,15 @@ export default function OvertimePage() {
             <option value="Human Resources">Human Resources</option>
             <option value="Finance & Accounting">Finance</option>
           </select>
+          <select
+            value={selectedCategory}
+            onChange={(e) => setSelectedCategory(e.target.value)}
+            className="border border-black p-2 rounded ml-2 text-black"
+          >
+            <option value="">All Category</option>
+            <option value="Inhouse">Inhouse</option>
+            <option value="Brand">Brand</option>
+          </select>
         </div>
       </div>
 
@@ -194,7 +217,7 @@ export default function OvertimePage() {
         <Table className="border border-gray-300 bg-white shadow-md">
           <TableHeader>
             <TableRow className="bg-blue-500 text-white border-r border-gray-300 font-bold">
-              <TableHead className=" font-bold border-r border-gray-300">Name</TableHead>
+              <TableHead className="font-bold border-r border-gray-300">Name</TableHead>
               <TableHead className="font-bold whitespace-nowrap border-r border-gray-300">Branch</TableHead>
               <TableHead className="font-bold whitespace-nowrap border-r border-gray-300">Department</TableHead>
               <TableHead className="font-bold whitespace-nowrap border-r border-gray-300">Position</TableHead>
@@ -208,20 +231,23 @@ export default function OvertimePage() {
                   <TableHead className="font-bold whitespace-nowrap border-r border-gray-300">Overtime Pay</TableHead>
                 </>
               )}
+              <TableHead className="font-bold border-r border-gray-300">Reason</TableHead>
               <TableHead className="font-bold whitespace-nowrap border-r border-gray-300">
-                Management Approval
+                User Approval
               </TableHead>
               {isAdmin && (
                 <>
                   <TableHead className="font-bold whitespace-nowrap border-r border-gray-300">HR Approval</TableHead>
-                  <TableHead className="font-bold whitespace-nowrap border-r border-gray-300">Brand Approval</TableHead>
                 </>
               )}
+              <TableHead className="font-bold whitespace-nowrap border-r border-gray-300">
+                Brand Approval
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {paginatedRequests.map((request: any) => (
-              <TableRow key={request.id}>
+              <TableRow className="bg-white text-black" key={request.id}>
                 <TableCell className="border-r whitespace-nowrap border-gray-300">
                   {request.data.overtime_name}
                 </TableCell>
@@ -231,9 +257,7 @@ export default function OvertimePage() {
                 <TableCell className="border-r whitespace-nowrap border-gray-300">{request.data.date}</TableCell>
                 <TableCell className="border-r whitespace-nowrap border-gray-300">{request.data.start_time}</TableCell>
                 <TableCell className="border-r whitespace-nowrap border-gray-300">{request.data.end_time}</TableCell>
-                <TableCell className="border-r whitespace-nowrap border-gray-300">
-                  {request.data.count_time} hours
-                </TableCell>
+                <TableCell className="border-r whitespace-nowrap border-gray-300">{request.data.count_time} hours </TableCell>
                 <TableCell className="border-r whitespace-nowrap border-gray-300">{request.data.category}</TableCell>
                 {isAdmin && (
                   <>
@@ -242,20 +266,13 @@ export default function OvertimePage() {
                     </TableCell>
                   </>
                 )}
-                <TableCell className="border-r whitespace-nowrap border-gray-300">
-                  {request.data.management_approval || "Pending"}
-                  {isAdmin && request.data.management_approval !== "Approved" && (
+                <TableCell className="border-r border-gray-300">{request.data.reason}</TableCell>
+                <TableCell className="border-r whitespace-nowrap border-gray-300 text-center">
+                  {request.data.management_approval || ""}
+                  {request.data.management_approval !== "Approved" && (
                     <Button
                       onClick={() => handleApprove(request.id, "management")}
-                      className="ml-2 bg-green-500 text-white px-2 py-1 rounded text-sm"
-                    >
-                      Approve
-                    </Button>
-                  )}
-                  {!isAdmin && request.data.management_approval !== "Approved" && (
-                    <Button
-                      onClick={() => handleApprove(request.id, "management")}
-                      className="ml-2 bg-green-500 text-white px-2 py-1 rounded text-sm"
+                      className="ml-2 bg-green-500 text-black px-2 py-1 rounded text-sm"
                     >
                       Approve
                     </Button>
@@ -263,23 +280,12 @@ export default function OvertimePage() {
                 </TableCell>
                 {isAdmin && (
                   <>
-                    <TableCell className="border-r whitespace-nowrap border-gray-300">
-                      {request.data.hr_approval || "Pending"}
-                      {isAdmin && request.data.hr_approval !== "Approved" && (
+                    <TableCell className="border-r whitespace-nowrap border-gray-300 text-center">
+                      {request.data.hr_approval || ""}
+                      {request.data.hr_approval !== "Approved" && (
                         <Button
                           onClick={() => handleApprove(request.id, "hr")}
-                          className="ml-2 bg-green-500 text-white px-2 py-1 rounded text-sm"
-                        >
-                          Approve
-                        </Button>
-                      )}
-                    </TableCell>
-                    <TableCell className="border-r whitespace-nowrap border-gray-300">
-                      {request.data.brand_approval || "Pending"}
-                      {isAdmin && request.data.brand_approval !== "Approved" && (
-                        <Button
-                          onClick={() => handleApprove(request.id, "brand")}
-                          className="ml-2 bg-green-500 text-white px-2 py-1 rounded text-sm"
+                          className="ml-2 bg-green-500 text-black px-2 py-1 rounded text-sm"
                         >
                           Approve
                         </Button>
@@ -287,6 +293,17 @@ export default function OvertimePage() {
                     </TableCell>
                   </>
                 )}
+                <TableCell className="border-r whitespace-nowrap border-gray-300 text-center">
+                  {request.data.brand_approval || ""}
+                  {request.data.brand_approval !== "Approved" && (
+                    <Button
+                      onClick={() => handleApprove(request.id, "brand")}
+                      className="ml-2 bg-green-500 text-black px-2 py-1 rounded text-sm"
+                    >
+                      Approve
+                    </Button>
+                  )}
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>
@@ -294,15 +311,17 @@ export default function OvertimePage() {
       )}
 
       <div className="flex justify-center">
-        <button className="mr-2 bg-blue-500 text-white px-2 py-1 rounded"
-          onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))} 
+        <button
+          className="mr-2 bg-blue-500 text-white px-2 py-1 rounded"
+          onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
           disabled={currentPage === 1}
         >
           Previous
         </button>
-        <span className=" px-2 py-1">Page {currentPage} of {totalPages}</span>
-        <button className="ml-2 bg-blue-500 text-white px-2 py-1 rounded"
-          onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))} 
+        <span className="text-black px-2 py-1">Page {currentPage} of {totalPages}</span>
+        <button
+          className="ml-2 bg-blue-500 text-white px-2 py-1 rounded"
+          onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
           disabled={currentPage === totalPages}
         >
           Next

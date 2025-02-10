@@ -23,12 +23,12 @@ export default function DashboardLayout({
       <aside className="w-64 bg-white shadow-md flex flex-col">
         <nav className="p-5 space-y-2 flex-grow">
           <Link href="/dashboard" className="block">
-            <Button variant="ghost" className="w-full justify-start font-bold">
+            <Button variant="ghost" className="w-full justify-start font-bold text-black">
               Dashboard
             </Button>
           </Link>
           <Link href="/dashboard/overtime" className="block">
-            <Button variant="ghost" className="w-full justify-start font-bold">
+            <Button variant="ghost" className="w-full justify-start font-bold text-black">
               Overtime Submission
             </Button>
           </Link>
