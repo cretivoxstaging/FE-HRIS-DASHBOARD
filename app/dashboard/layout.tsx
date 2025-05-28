@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Button } from "@/components/ui/button"
+import Image from 'next/image'
 
 export default function DashboardLayout({
   children,
@@ -19,17 +20,31 @@ export default function DashboardLayout({
   }
 
   return (
-    <div className="flex h-screen bg-gray-100">
-      <aside className="w-64 bg-white shadow-md flex flex-col">
+    <div className="flex h-screen bg-white">
+      <aside className="w-64 bg-gray-200 shadow-md flex flex-col">
         <nav className="p-5 space-y-2 flex-grow">
           <Link href="/dashboard" className="block">
-            <Button variant="ghost" className="w-full justify-start font-bold text-black">
+            <Button variant="ghost" className="w-full justify-start font-bold text-black text-1xl">
+              <Image
+                src="/dashboard.png" // pastikan gambar ada di folder `public/icons/`
+                alt="Dashboard Icon"
+                width={20}
+                height={20}
+                className="mr-2"
+              />
               Dashboard
             </Button>
           </Link>
           <Link href="/dashboard/overtime" className="block">
-            <Button variant="ghost" className="w-full justify-start font-bold text-black">
-              Overtime Submission
+            <Button variant="ghost" className="w-full justify-start font-bold text-black text-1xl">
+              <Image
+                src="/overtime.png" // pastikan gambar ada di folder `public/icons/`
+                alt="Dashboard Icon"
+                width={20}
+                height={20}
+                className="mr-2"
+              />
+              Overtime
             </Button>
           </Link>
         </nav>
