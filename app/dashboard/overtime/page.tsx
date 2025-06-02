@@ -191,7 +191,7 @@ export default function OvertimePage() {
           <select
             value={selectedBranch}
             onChange={(e) => setSelectedBranch(e.target.value)}
-            className="border border-black p-2 rounded ml-2 text-black"
+            className="border border-black p-2 rounded ml-2 text-black h-"
           >
             <option value="">All Branches</option>
             <option value="Cretivox">Cretivox</option>
