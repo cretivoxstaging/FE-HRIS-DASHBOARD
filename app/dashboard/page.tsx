@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Users, Clock, Tag, Home, Trophy } from "lucide-react"
+import { Users, Clock, Tag, Home } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 
@@ -19,7 +19,7 @@ export default function DashboardPage() {
   const [inhouseCategoryCount, setInhouseCategoryCount] = useState(0)
   const [employeeOvertimeRanking, setEmployeeOvertimeRanking] = useState<EmployeeOvertimeData[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState(null)
+  const [error] = useState(null)
 
   useEffect(() => {
     const fetchData = async () => {
