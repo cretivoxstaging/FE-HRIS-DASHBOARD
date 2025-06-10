@@ -188,7 +188,7 @@ export default function DashboardPage() {
     <div className="space-y-6 p-6 bg-white min-h-screen">
       <div className="flex flex-col gap-2">
         <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-gray-500">Welcome to your HR management dashboard</p>
+        <p className="text-gray-500">Welcome to management dashboard</p>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
@@ -277,8 +277,8 @@ export default function DashboardPage() {
       <Card className="border-none shadow-md text-black">
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <div>
-            <CardTitle className="text-xl font-semibold">Employee Overtime Ranking</CardTitle>
-            <p className="text-sm text-gray-500 mt-1">Employees ranked by total overtime hours</p>
+            <CardTitle className="text-xl font-semibold">Masih Di Kantor? Board</CardTitle>
+            <p className="text-sm text-gray-500 mt-1">Yang paling sering pulang terakhir</p>
           </div>
         </CardHeader>
         <CardContent>
