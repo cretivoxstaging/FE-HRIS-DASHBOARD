@@ -278,7 +278,7 @@ export default function DashboardPage() {
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <div>
             <CardTitle className="text-xl font-semibold">Masih Di Kantor? Board</CardTitle>
-            <p className="text-sm text-gray-500 mt-1">Yang paling sering pulang terakhir</p>
+            <p className="text-sm text-gray-500 mt-1">Sipaling betah di kantor</p>
           </div>
         </CardHeader>
         <CardContent>
