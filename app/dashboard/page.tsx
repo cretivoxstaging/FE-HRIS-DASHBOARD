@@ -1,11 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-<<<<<<< HEAD
 import { Users, Clock, Tag, Home, Trophy, BarChart3, PieChart } from "lucide-react"
-=======
-import { Users, Clock, Tag, Home } from "lucide-react"
->>>>>>> ee28161edab844efdb8d167d53e4b9d52a98f1fd
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import {
@@ -68,7 +64,7 @@ export default function DashboardPage() {
   const [departmentOvertimeData, setDepartmentOvertimeData] = useState<DepartmentOvertimeData[]>([])
   const [branchOvertimeData, setBranchOvertimeData] = useState<BranchOvertimeData[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [error] = useState(null)
+  const [error, setError] = useState(null)
 
   useEffect(() => {
     const fetchData = async () => {
@@ -298,11 +294,7 @@ export default function DashboardPage() {
     <div className="space-y-6 p-6 bg-gray-50 min-h-screen">
       <div className="flex flex-col gap-2">
         <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-<<<<<<< HEAD
         <p className="text-gray-500">Welcome to HRIS management dashboard</p>
-=======
-        <p className="text-gray-500">Welcome to management dashboard</p>
->>>>>>> ee28161edab844efdb8d167d53e4b9d52a98f1fd
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
