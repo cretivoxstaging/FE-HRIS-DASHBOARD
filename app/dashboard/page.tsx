@@ -64,7 +64,7 @@ export default function DashboardPage() {
   const [departmentOvertimeData, setDepartmentOvertimeData] = useState<DepartmentOvertimeData[]>([])
   const [branchOvertimeData, setBranchOvertimeData] = useState<BranchOvertimeData[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState(null)
+  const [error] = useState(null)
 
   useEffect(() => {
     const fetchData = async () => {
@@ -426,7 +426,7 @@ export default function DashboardPage() {
                     />
                     <YAxis tick={{ fontSize: 10 }} allowDecimals={false} domain={[0, "dataMax"]} width={30} />
                     <Tooltip
-                      content={({ active, payload, label }) => {
+                      content={({ active, payload }) => {
                         if (active && payload && payload.length) {
                           const data = payload[0].payload
                           return (
