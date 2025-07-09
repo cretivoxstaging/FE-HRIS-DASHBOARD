@@ -48,7 +48,7 @@ const ChartContainer = React.forwardRef<
 ChartContainer.displayName = "ChartContainer"
 
 const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
-  const colorConfig = Object.entries(config).filter(([_, itemConfig]) => itemConfig.theme || itemConfig.color)
+  const colorConfig = Object.entries(config).filter(([, itemConfig]) => itemConfig.theme || itemConfig.color)
 
   if (!colorConfig.length) {
     return null
@@ -295,9 +295,6 @@ type ChartConfig = {
       }
   )
 }
-
-// Get current theme (you might need to adjust this based on your theme setup)
-const _resolvedTheme = "light" // or get from your theme context
 
 export { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent, ChartStyle }
 
