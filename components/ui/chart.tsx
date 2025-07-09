@@ -243,7 +243,7 @@ interface ChartLegendPayloadItem {
   dataKey?: string
   value?: string
   color?: string
-  [key: string]: any
+  [key: string]: unknown
 }
 
 const ChartLegendContent = React.forwardRef<
