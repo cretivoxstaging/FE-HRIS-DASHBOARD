@@ -168,7 +168,14 @@ const ChartTooltipContent = React.forwardRef<
           {payload.map((item, index) => {
             const key = `${nameKey || item.name || item.dataKey || "value"}`
             const itemConfig = getPayloadConfigFromPayload(config, item, key)
-            const indicatorColor = color || (item.payload && (item.payload as any).fill) || item.color
+            let indicatorColor = color
+            if (!indicatorColor) {
+              if (item.payload && typeof item.payload === 'object' && item.payload !== null && 'fill' in item.payload && typeof (item.payload as Record<string, unknown>).fill === 'string') {
+                indicatorColor = (item.payload as { fill: string }).fill
+              } else if (item.color) {
+                indicatorColor = item.color
+              }
+            }
 
             return (
               <div
@@ -295,16 +302,24 @@ function getPayloadConfigFromPayload(config: ChartConfig, payload: unknown, key:
     return undefined
   }
 
-  const payloadPayload =
-    "payload" in payload && typeof (payload as any).payload === "object" && (payload as any).payload !== null
-      ? (payload as any).payload
-      : undefined
+  // Type guard for payload with nested payload property
+  function hasPayloadProp(obj: unknown): obj is { payload: Record<string, unknown> } {
+    return (
+      typeof obj === 'object' &&
+      obj !== null &&
+      'payload' in obj &&
+      typeof (obj as { payload: unknown }).payload === 'object' &&
+      (obj as { payload: unknown }).payload !== null
+    )
+  }
+
+  const payloadPayload = hasPayloadProp(payload) ? payload.payload : undefined
 
   let configLabelKey: string = key
 
   if (key in config || (payloadPayload && configLabelKey in payloadPayload)) {
     configLabelKey = key
-  } else if (payloadPayload && "fill" in payloadPayload && typeof payloadPayload.fill === "string") {
+  } else if (payloadPayload && 'fill' in payloadPayload && typeof payloadPayload.fill === 'string') {
     configLabelKey = payloadPayload.fill
   }
 
