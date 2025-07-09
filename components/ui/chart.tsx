@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/ban-ts-comment */
 "use client"
 
 import * as React from "react"
@@ -125,7 +124,7 @@ const ChartTooltipContent = React.forwardRef<
     },
     ref,
   ) => {
-    const { config } = useChart()
+    const config = useChart()
 
     const tooltipLabel = React.useMemo(() => {
       if (hideLabel || !payload?.length) {
@@ -135,10 +134,13 @@ const ChartTooltipContent = React.forwardRef<
       const [item] = payload
       const key = `${labelKey || item.dataKey || item.name || "value"}`
       const itemConfig = getPayloadConfigFromPayload(config, item, key)
-      const value =
-        !labelKey && typeof label === "string"
-          ? config[label as keyof typeof config]?.label || label
-          : itemConfig?.label
+      let value: React.ReactNode = undefined
+      if (!labelKey && typeof label === "string") {
+        const configItem = config[label as keyof typeof config]
+        value = typeof configItem === "object" && configItem !== null ? configItem.label : label
+      } else {
+        value = typeof itemConfig === "object" && itemConfig !== null ? itemConfig.label : undefined
+      }
 
       if (labelFormatter && typeof value !== "undefined") {
         return labelFormatter(value as string | number, payload)
@@ -166,7 +168,7 @@ const ChartTooltipContent = React.forwardRef<
           {payload.map((item, index) => {
             const key = `${nameKey || item.name || item.dataKey || "value"}`
             const itemConfig = getPayloadConfigFromPayload(config, item, key)
-            const indicatorColor = color || item.payload?.fill || item.color
+            const indicatorColor = color || (item.payload && (item.payload as any).fill) || item.color
 
             return (
               <div
@@ -180,7 +182,7 @@ const ChartTooltipContent = React.forwardRef<
                   formatter(item.value, item.name, item, index, item.payload || {})
                 ) : (
                   <>
-                    {itemConfig?.icon ? (
+                    {typeof itemConfig === "object" && itemConfig !== null && itemConfig.icon ? (
                       <itemConfig.icon />
                     ) : (
                       !hideIndicator && (
@@ -208,7 +210,7 @@ const ChartTooltipContent = React.forwardRef<
                     >
                       <div className="grid gap-1.5">
                         {nestLabel ? <div className={cn("font-medium", labelClassName)}>{tooltipLabel}</div> : null}
-                        <div className="text-muted-foreground">{itemConfig?.label || item.name}</div>
+                        <div className="text-muted-foreground">{typeof itemConfig === "object" && itemConfig !== null ? itemConfig.label : item.name}</div>
                       </div>
                       {item.value && (
                         <div className="font-mono font-medium tabular-nums text-foreground">
@@ -230,17 +232,25 @@ ChartTooltipContent.displayName = "ChartTooltipContent"
 
 const ChartLegend = RechartsPrimitive.Legend
 
+interface ChartLegendPayloadItem {
+  dataKey?: string
+  value?: string
+  color?: string
+  [key: string]: any
+}
+
 const ChartLegendContent = React.forwardRef<
   HTMLDivElement,
-  React.ComponentProps<"div"> &
-    Pick<RechartsPrimitive.LegendProps, "payload" | "verticalAlign"> & {
-      hideIcon?: boolean
-      nameKey?: string
-    }
+  React.ComponentProps<"div"> & {
+    payload?: ChartLegendPayloadItem[]
+    verticalAlign?: "top" | "bottom"
+    hideIcon?: boolean
+    nameKey?: string
+  }
 >(({ className, hideIcon = false, payload, verticalAlign = "bottom", nameKey }, ref) => {
-  const { config } = useChart()
+  const config = useChart()
 
-  if (!payload?.length) {
+  if (!payload || !Array.isArray(payload) || !payload.length) {
     return null
   }
 
@@ -249,16 +259,16 @@ const ChartLegendContent = React.forwardRef<
       ref={ref}
       className={cn("flex items-center justify-center gap-4", verticalAlign === "top" ? "pb-3" : "pt-3", className)}
     >
-      {payload.map((item) => {
+      {payload.map((item, idx) => {
         const key = `${nameKey || item.dataKey || "value"}`
         const itemConfig = getPayloadConfigFromPayload(config, item, key)
 
         return (
           <div
-            key={item.value}
+            key={item.value || idx}
             className={cn("flex items-center gap-1.5 [&>svg]:h-3 [&>svg]:w-3 [&>svg]:text-muted-foreground")}
           >
-            {itemConfig?.icon && !hideIcon ? (
+            {typeof itemConfig === "object" && itemConfig !== null && itemConfig.icon && !hideIcon ? (
               <itemConfig.icon />
             ) : (
               !hideIcon && (
@@ -270,7 +280,7 @@ const ChartLegendContent = React.forwardRef<
                 />
               )
             )}
-            {itemConfig?.label}
+            {typeof itemConfig === "object" && itemConfig !== null ? itemConfig.label : item.value}
           </div>
         )
       })}
@@ -286,8 +296,8 @@ function getPayloadConfigFromPayload(config: ChartConfig, payload: unknown, key:
   }
 
   const payloadPayload =
-    "payload" in payload && typeof payload.payload === "object" && payload.payload !== null
-      ? payload.payload
+    "payload" in payload && typeof (payload as any).payload === "object" && (payload as any).payload !== null
+      ? (payload as any).payload
       : undefined
 
   let configLabelKey: string = key
