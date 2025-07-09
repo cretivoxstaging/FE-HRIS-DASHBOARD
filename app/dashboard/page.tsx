@@ -306,7 +306,7 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             {isLoading ? (
-              <div className="h-8 w-16 animate-pulse rounded bg-gray-200"></div>
+              <div className="h-8 w-16 animate-pulse rounded bg-gray-300"></div>
             ) : error ? (
               <div className="text-sm text-red-500">Failed to load data</div>
             ) : (
