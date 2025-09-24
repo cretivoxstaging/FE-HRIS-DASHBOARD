@@ -8,9 +8,7 @@ import * as XLSX from "xlsx"
 import { toast } from "react-hot-toast"
 import { Check, Download, FileSpreadsheet, Search, Filter } from "lucide-react"
 
-const API_URL = "https://hris-api-kappa.vercel.app/api/v1/overtime?pageSize=1000" // Mengubah ke /api/v1/overtime
-const AUTH_TOKEN = "Bearer $2a$12$JSyMjCxUTNmGBlAQOQQeaOFrOdtdUmn.U/17DlvOK1t.Ot0BTRGli"
-
+const API_URL = "/api/overtime"
 function getCookie(name: string): string | null {
   const value = `; ${document.cookie}`
   const parts = value.split(`; ${name}=`)
@@ -100,7 +98,6 @@ export default function OvertimePage() {
         const response = await fetch(API_URL, {
           method: "GET",
           headers: {
-            Authorization: AUTH_TOKEN,
             "Content-Type": "application/json",
           },
           cache: "no-store",
@@ -380,14 +377,14 @@ export default function OvertimePage() {
             <>
               <button
                 onClick={exportToExcel}
-                className="inline-flex items-center gap-2 whitespace-nowrap bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white px-4 py-2 rounded-lg font-medium transition-all duration-200 transform hover:scale-105 active:scale-95 shadow-md hover:shadow-lg"
+                className="inline-flex items-center gap-2 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white px-4 py-2 rounded-lg font-medium transition-all duration-200 transform hover:scale-105 active:scale-95 shadow-md hover:shadow-lg"
               >
                 <Download className="w-4 h-4" />
-                Export Table
+                Export Excel
               </button>
               <button
                 onClick={exportEmployeeRankingToExcel}
-                className="inline-flex items-center gap-2 whitespace-nowrap bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-all duration-200 transform hover:scale-105 active:scale-95 shadow-md hover:shadow-lg"
+                className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-all duration-200 transform hover:scale-105 active:scale-95 shadow-md hover:shadow-lg"
               >
                 <FileSpreadsheet className="w-4 h-4" />
                 Export Ranking

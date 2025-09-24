@@ -1,257 +1,128 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Users, Clock, Tag, Home, Trophy, BarChart3, PieChart } from "lucide-react"
+import { Users, Building2, UserCheck, Calendar, ChevronUp, ChevronDown } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import {
-  Bar,
-  BarChart,
-  ResponsiveContainer,
-  XAxis,
-  YAxis,
-  Tooltip,
-  Pie,
-  PieChart as RechartsPieChart,
-  Cell,
-  Legend,
-} from "recharts"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { ChartContainer } from "@/components/ui/chart"
+import { ResponsiveContainer, BarChart, XAxis, YAxis, Tooltip, Bar } from "recharts"
 
-// Type for employee overtime data
-type EmployeeOvertimeData = {
-  name: string
-  department: string
-  totalHours: number
+interface Employee {
+  id: string
+  employee_status: string
+  job_level: string
+  gender: string
+  profile_picture?: string
+  [key: string]: any
 }
 
-// Type for department overtime data
-type DepartmentOvertimeData = {
-  department: string
-  count: number
-  shortName: string
+interface EmploymentStatusData {
+  total: number
+  permanent: number
+  contract: number
+  probation: number
 }
 
-// Type for branch overtime data
-type BranchOvertimeData = {
-  branch: string
-  count: number
-  percentage: number
+interface JobLevelData {
+  total: number
+  seniorStaff: number
+  middleStaff: number
+  juniorStaff: number
 }
 
-// Colors for pie chart
-const COLORS = [
-  "#3B82F6", // Blue
-  "#EF4444", // Red
-  "#10B981", // Green
-  "#F59E0B", // Amber
-  "#8B5CF6", // Purple
-  "#EC4899", // Pink
-  "#06B6D4", // Cyan
-  "#84CC16", // Lime
-  "#F97316", // Orange
-  "#6366F1", // Indigo
-  "#14B8A6", // Teal
-  "#F43F5E", // Rose
-]
+interface GenderData {
+  total: number
+  male: number
+  female: number
+}
 
-export default function DashboardPage() {
-  const [overtimeCount, setOvertimeCount] = useState(0)
+interface AttendanceRecord {
+  id?: string
+  name?: string
+  date: string
+  clock_in?: string
+}
+
+export default function MainDashboardPage() {
   const [employeeCount, setEmployeeCount] = useState(0)
-  const [brandCategoryCount, setBrandCategoryCount] = useState(0)
-  const [inhouseCategoryCount, setInhouseCategoryCount] = useState(0)
-  const [employeeOvertimeRanking, setEmployeeOvertimeRanking] = useState<EmployeeOvertimeData[]>([])
-  const [departmentOvertimeData, setDepartmentOvertimeData] = useState<DepartmentOvertimeData[]>([])
-  const [branchOvertimeData, setBranchOvertimeData] = useState<BranchOvertimeData[]>([])
+  const [departmentCount, setDepartmentCount] = useState(0)
+  const [employmentStatus, setEmploymentStatus] = useState<EmploymentStatusData>({
+    total: 0,
+    permanent: 0,
+    contract: 0,
+    probation: 0,
+  })
+  const [jobLevel, setJobLevel] = useState<JobLevelData>({
+    total: 0,
+    seniorStaff: 0,
+    middleStaff: 0,
+    juniorStaff: 0,
+  })
+  const [genderData, setGenderData] = useState<GenderData>({
+    total: 0,
+    male: 0,
+    female: 0,
+  })
+  const [branchCount, setBranchCount] = useState(0)
+  const [companyCounts, setCompanyCounts] = useState({
+    cretivox: 0,
+    condfe: 0,
+    ogs: 0,
+  })
   const [isLoading, setIsLoading] = useState(true)
-  const [error] = useState(null)
+  const [error, setError] = useState(null)
+  const [allBirthdays, setAllBirthdays] = useState<{ name: string; birth_date: string; age: number; profile_picture?: string }[]>([])
+  const [birthdaysThisMonth, setBirthdaysThisMonth] = useState<
+    { name: string; birth_date: string; age: number; profile_picture?: string }[]
+  >([])
+  const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth() + 1)
+  const [showMonthDropdown, setShowMonthDropdown] = useState<boolean>(false)
+  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear())
+  const [dropdownPos, setDropdownPos] = useState<{ top: number; left: number }>({ top: 0, left: 0 })
+  const [greeting, setGreeting] = useState("")
+  const [calendarMonth, setCalendarMonth] = useState<number>(new Date().getMonth())
+  const [calendarYear, setCalendarYear] = useState<number>(new Date().getFullYear())
+  const [attendanceData, setAttendanceData] = useState<AttendanceRecord[]>([])
+  const [attendanceCounts, setAttendanceCounts] = useState<{ day: number; count: number }[]>([])
+  const [attendanceLoading, setAttendanceLoading] = useState<boolean>(false)
+  const [attendanceMonth, setAttendanceMonth] = useState<number>(new Date().getMonth() + 1)
+  const [attendanceYear, setAttendanceYear] = useState<number>(new Date().getFullYear())
+
+  // Function to get greeting based on current time
+  const getGreeting = () => {
+    const hour = new Date().getHours()
+    if (hour < 12) {
+      return "Good morning"
+    } else if (hour < 18) {
+      return "Good afternoon"
+    } else {
+      return "Good evening"
+    }
+  }
+
+  useEffect(() => {
+    // Set initial greeting
+    setGreeting(getGreeting())
+    
+    // Update greeting every minute
+    const interval = setInterval(() => {
+      setGreeting(getGreeting())
+    }, 60000) // Update every minute
+
+    return () => clearInterval(interval)
+  }, [])
 
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true)
       try {
-        // Get API URL and token from environment variables
-        const apiBaseUrl = "https://hris-api-kappa.vercel.app/api/v1"; // URL API
-        const apiToken = "$2a$12$JSyMjCxUTNmGBlAQOQQeaOFrOdtdUmn.U/17DlvOK1t.Ot0BTRGli";
-
-        // Fetch overtime data from the API
-        const overtimeResponse = await fetch(`${apiBaseUrl}/overtime?pageSize=1000`, {
+        // Fetch employee data from internal API route
+        const employeeResponse = await fetch("/api/dashboard/employee", {
+          method: "GET",
           headers: {
-            Authorization: `Bearer ${apiToken}`,
+            "Content-Type": "application/json",
           },
-        })
-
-        if (!overtimeResponse.ok) {
-          throw new Error("Failed to fetch overtime data")
-        }
-
-        const overtimeData = await overtimeResponse.json()
-
-        // Set overtime count
-        const overtimeEntries = overtimeData.overtime || []
-        setOvertimeCount(overtimeEntries.length)
-
-        // Count categories from overtime data
-        let brandCount = 0
-        let inhouseCount = 0
-
-        if (Array.isArray(overtimeEntries)) {
-          // First, try to count directly from the overtime array
-          brandCount = overtimeEntries.filter((item) => item && item.category === "Brand").length
-          inhouseCount = overtimeEntries.filter((item) => item && item.category === "Inhouse").length
-
-          // If that doesn't work, try to look at employee data within overtime entries
-          if (brandCount === 0 && inhouseCount === 0) {
-            for (const item of overtimeEntries) {
-              if (item && item.employee && item.employee.category === "Brand") {
-                brandCount++
-              }
-              if (item && item.employee && item.employee.category === "Inhouse") {
-                inhouseCount++
-              }
-            }
-          }
-        }
-
-        // If we still don't have counts, try string matching as a last resort
-        if (brandCount === 0 && inhouseCount === 0) {
-          const responseStr = JSON.stringify(overtimeData)
-          const brandMatches = responseStr.match(/"category"\s*:\s*"Brand"/g)
-          const inhouseMatches = responseStr.match(/"category"\s*:\s*"Inhouse"/g)
-
-          if (brandMatches) {
-            brandCount = brandMatches.length
-          }
-
-          if (inhouseMatches) {
-            inhouseCount = inhouseMatches.length
-          }
-        }
-
-        setBrandCategoryCount(brandCount)
-        setInhouseCategoryCount(inhouseCount)
-
-        // Process department overtime data
-        const departmentCount: { [key: string]: number } = {}
-
-        if (Array.isArray(overtimeEntries)) {
-          overtimeEntries.forEach((entry) => {
-            if (!entry || !entry.data) return
-
-            // Extract department for department chart
-            const department = entry.data.department || "Unknown"
-            if (departmentCount[department]) {
-              departmentCount[department]++
-            } else {
-              departmentCount[department] = 1
-            }
-          })
-        }
-
-        // Convert to chart data format - sort by count descending
-        const departmentChartData = Object.entries(departmentCount)
-          .map(([department, count]) => ({
-            department: department,
-            count: count,
-            shortName: department.length > 12 ? department.substring(0, 12) + "..." : department,
-          }))
-          .sort((a, b) => b.count - a.count) // Sort by count descending
-
-        setDepartmentOvertimeData(departmentChartData)
-
-        // Process branch overtime data
-        const branchCount: { [key: string]: number } = {}
-
-        if (Array.isArray(overtimeEntries)) {
-          overtimeEntries.forEach((entry) => {
-            if (!entry || !entry.data) return
-
-            // Extract branch for branch pie chart
-            const branch = entry.data.branch || "Unknown"
-            if (branchCount[branch]) {
-              branchCount[branch]++
-            } else {
-              branchCount[branch] = 1
-            }
-          })
-        }
-
-        // Convert branch data to pie chart format
-        const totalBranchSubmissions = Object.values(branchCount).reduce((sum, count) => sum + count, 0)
-        const branchChartData = Object.entries(branchCount)
-          .map(([branch, count]) => ({
-            branch: branch,
-            count: count,
-            percentage: Math.round((count / totalBranchSubmissions) * 100),
-          }))
-          .sort((a, b) => b.count - a.count) // Sort by count descending
-
-        setBranchOvertimeData(branchChartData)
-
-        // Process employee overtime data for ranking
-        const employeeOvertimeMap = new Map<string, EmployeeOvertimeData>()
-
-        if (Array.isArray(overtimeEntries)) {
-          overtimeEntries.forEach((entry) => {
-            if (!entry) return
-
-            // Extract employee name, department, and hours
-            let employeeName = ""
-            let department = ""
-            let hours = 0
-
-            // Try to get data from different possible structures
-            if (entry.data) {
-              // From the sample data structure
-              employeeName = entry.data.overtime_name || ""
-              department = entry.data.department || ""
-
-              // Try to parse hours from count_time or calculate from start/end time
-              if (entry.data.count_time) {
-                const countTime = Number.parseFloat(entry.data.count_time)
-                if (!isNaN(countTime)) {
-                  hours = countTime
-                }
-              }
-            } else {
-              // Try alternative fields
-              employeeName = entry.employee_name || entry.name || ""
-              department = entry.department || ""
-              hours = Number.parseFloat(entry.hours || entry.count_time || "0") || 0
-            }
-
-            // Skip if we don't have a valid employee name
-            if (!employeeName) return
-
-            // Create or update employee data in the map
-            const key = `${employeeName}-${department}`
-            if (employeeOvertimeMap.has(key)) {
-              const existingData = employeeOvertimeMap.get(key)!
-              existingData.totalHours += hours
-              employeeOvertimeMap.set(key, existingData)
-            } else {
-              employeeOvertimeMap.set(key, {
-                name: employeeName,
-                department: department,
-                totalHours: hours,
-              })
-            }
-          })
-        }
-
-        // Convert map to array and sort by total hours (descending)
-        const sortedEmployeeOvertimeData = Array.from(employeeOvertimeMap.values()).sort(
-          (a, b) => b.totalHours - a.totalHours,
-        )
-        // Remove .slice(0, 10) to show all employees
-
-        setEmployeeOvertimeRanking(sortedEmployeeOvertimeData)
-
-        // Fetch employee data for total count
-        const employeeResponse = await fetch(`${apiBaseUrl}/employee`, {
-          headers: {
-            Authorization: `Bearer ${apiToken}`,
-          },
+          cache: "no-store",
         })
 
         if (!employeeResponse.ok) {
@@ -259,17 +130,20 @@ export default function DashboardPage() {
         }
 
         const employeeData = await employeeResponse.json()
+        let employees: Employee[] = []
 
         // Check if the data structure is as expected
         if (employeeData && Array.isArray(employeeData.data)) {
+          employees = employeeData.data
           setEmployeeCount(employeeData.data.length)
         } else if (employeeData && Array.isArray(employeeData.employee)) {
+          employees = employeeData.employee
           setEmployeeCount(employeeData.employee.length)
         } else if (employeeData && typeof employeeData === "object") {
           // Try to find any array in the response that might contain employees
           const possibleArrays = Object.values(employeeData).filter((val) => Array.isArray(val))
           if (possibleArrays.length > 0) {
-            // Use the first array found
+            employees = possibleArrays[0] as Employee[]
             setEmployeeCount(possibleArrays[0].length)
           } else {
             setEmployeeCount(0)
@@ -277,6 +151,178 @@ export default function DashboardPage() {
         } else {
           setEmployeeCount(0)
         }
+
+        // Hitung jumlah departemen unik dari kemungkinan nama field yang berbeda
+        const departmentKeys = [
+          "department",
+          "dept",
+          "division",
+          "unit",
+          "department_name",
+          "departement",
+          "section",
+          "group",
+          "org",
+          "organization",
+          "organization_name",
+        ] as const
+
+        const uniqueDepartments = new Set<string>()
+        employees.forEach((employee: Employee) => {
+          let deptValue: unknown = undefined
+          for (const key of departmentKeys) {
+            if (employee[key] !== undefined && employee[key] !== null) {
+              deptValue = employee[key]
+              break
+            }
+          }
+
+          if (typeof deptValue === "string") {
+            const normalized = deptValue.trim()
+            if (normalized) uniqueDepartments.add(normalized.toLowerCase())
+          }
+        })
+        setDepartmentCount(uniqueDepartments.size)
+
+        // Hitung jumlah branch unik dari kemungkinan nama field yang berbeda
+        const branchKeys = [
+          "branch",
+          "branch_name",
+          "location",
+          "office",
+          "site",
+          "work_location",
+        ] as const
+
+        const uniqueBranches = new Set<string>()
+        employees.forEach((employee: Employee) => {
+          let branchValue: unknown = undefined
+          for (const key of branchKeys) {
+            if (employee[key] !== undefined && employee[key] !== null) {
+              branchValue = employee[key]
+              break
+            }
+          }
+
+          if (typeof branchValue === "string") {
+            const normalized = branchValue.trim()
+            if (normalized) uniqueBranches.add(normalized.toLowerCase())
+          }
+        })
+        setBranchCount(uniqueBranches.size)
+
+        // Hitung jumlah karyawan untuk Cretivox, Condfe, dan OGS dari field branch
+        let cretivox = 0
+        let condfe = 0
+        let ogs = 0
+
+        employees.forEach((employee: Employee) => {
+          const branchValue = typeof employee["branch"] === "string" ? employee["branch"].trim().toLowerCase() : ""
+          if (!branchValue) return
+          if (branchValue === "cretivox") cretivox++
+          if (branchValue === "condfe") condfe++
+          if (branchValue === "ogs") ogs++
+        })
+        setCompanyCounts({ cretivox, condfe, ogs })
+
+        // Process employment status data
+        const statusCounts = {
+          total: employees.length,
+          permanent: 0,
+          contract: 0,
+          probation: 0,
+        }
+
+        employees.forEach((employee: Employee) => {
+          const status = employee.employee_status?.toLowerCase()
+          if (status === "permanent") {
+            statusCounts.permanent++
+          } else if (status === "contract") {
+            statusCounts.contract++
+          } else if (status === "probation") {
+            statusCounts.probation++
+          }
+        })
+
+        setEmploymentStatus(statusCounts)
+
+        // Process job level data
+        const jobLevelCounts = {
+          total: employees.length,
+          seniorStaff: 0,
+          middleStaff: 0,
+          juniorStaff: 0,
+        }
+
+        employees.forEach((employee: Employee) => {
+          const level = employee.job_level?.toLowerCase()
+          if (level === "senior staff" || level === "senior") {
+            jobLevelCounts.seniorStaff++
+          } else if (level === "middle staff" || level === "middle") {
+            jobLevelCounts.middleStaff++
+          } else if (level === "junior staff" || level === "junior") {
+            jobLevelCounts.juniorStaff++
+          }
+        })
+
+        setJobLevel(jobLevelCounts)
+
+        // Process gender data
+        const genderCounts = {
+          total: employees.length,
+          male: 0,
+          female: 0,
+        }
+
+        employees.forEach((employee: Employee) => {
+          const gender = employee.gender?.toLowerCase()
+          if (gender === "male" || gender === "m") {
+            genderCounts.male++
+          } else if (gender === "female" || gender === "f") {
+            genderCounts.female++
+          }
+        })
+
+        setGenderData(genderCounts)
+
+        // Setelah proses gender data, tambahkan proses ulang tahun:
+        // Asumsi nama field nama karyawan adalah "name" dan tanggal lahir "birth_date"
+        const now = new Date()
+        const thisMonth = now.getMonth() + 1 // getMonth() 0-based
+        const today = now.getDate()
+        const allBdays = employees
+          .filter((emp) => emp.birth_date)
+          .map((emp) => {
+            const [year, month, day] = emp.birth_date.split("-").map(Number)
+            // Hitung umur
+            let age = now.getFullYear() - year
+            if (
+              month > thisMonth ||
+              (month === thisMonth && day > today)
+            ) {
+              age--
+            }
+            return {
+              name: emp.name || emp.full_name || "Tanpa Nama",
+              birth_date: emp.birth_date,
+              age,
+              profile_picture: emp.profile_picture,
+            }
+          })
+          .sort((a, b) => {
+            // Urutkan berdasarkan bulan dan tanggal
+            const [ , monthA, dayA ] = a.birth_date.split("-").map(Number)
+            const [ , monthB, dayB ] = b.birth_date.split("-").map(Number)
+            if (monthA !== monthB) return monthA - monthB
+            return dayA - dayB
+          })
+        setAllBirthdays(allBdays)
+        // Data ulang tahun bulan ini tetap untuk default
+        const birthdays = allBdays.filter((b) => {
+          const [ , month ] = b.birth_date.split("-").map(Number)
+          return month === thisMonth
+        })
+        setBirthdaysThisMonth(birthdays)
       } catch (error) {
         console.error("Error fetching data:", error)
       } finally {
@@ -287,26 +333,333 @@ export default function DashboardPage() {
     fetchData()
   }, [])
 
-  // Calculate total submissions for center text
-  const totalSubmissions = branchOvertimeData.reduce((sum, branch) => sum + branch.count, 0)
+  // Fetch attendance once
+  useEffect(() => {
+    const fetchAttendance = async () => {
+      try {
+        setAttendanceLoading(true)
+        const res = await fetch("/api/attendance", { cache: "no-store" })
+        if (!res.ok) throw new Error("Failed to fetch attendance data")
+        const json = await res.json()
+        const rows: AttendanceRecord[] = (json?.data || []) as AttendanceRecord[]
+        setAttendanceData(rows)
+      } catch (e) {
+        // silent fail on dashboard summary
+      } finally {
+        setAttendanceLoading(false)
+      }
+    }
+    fetchAttendance()
+  }, [])
+
+  // Recompute counts when month/year or data changes
+  useEffect(() => {
+    const year = attendanceYear
+    const month = attendanceMonth // 1-12
+    if (!year || !month) return
+
+    const daysInMonth = new Date(year, month, 0).getDate()
+    const counts = Array.from({ length: daysInMonth }, (_, i) => ({ day: i + 1, count: 0 }))
+
+    for (const rec of attendanceData) {
+      if (!rec?.date) continue
+      const [dStr, mStr, yStr] = rec.date.split("/")
+      const d = parseInt(dStr || "", 10)
+      const m = parseInt(mStr || "", 10)
+      const y = parseInt(yStr || "", 10)
+      if (!d || !m || !y) continue
+      if (m === month && y === year && rec.clock_in && rec.clock_in.trim() !== "") {
+        if (d >= 1 && d <= daysInMonth) {
+          counts[d - 1].count += 1
+        }
+      }
+    }
+
+    setAttendanceCounts(counts)
+  }, [attendanceData, attendanceMonth, attendanceYear])
+
+  // Tutup dropdown saat klik di luar area
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      const dropdown = document.getElementById("month-dropdown")
+      const btn = document.getElementById("calendar-btn")
+      const target = e.target as Node | null
+      if (
+        showMonthDropdown &&
+        dropdown &&
+        !dropdown.contains(target as Node) &&
+        btn &&
+        !btn.contains(target as Node)
+      ) {
+        setShowMonthDropdown(false)
+      }
+    }
+    const updateDropdownPos = () => {
+      const btn = document.getElementById("calendar-btn")
+      if (!btn) return
+      const rect = btn.getBoundingClientRect()
+      const dropdownWidth = 224 // w-56 (14rem)
+      const gutter = 8
+      const desiredLeft = rect.right + window.scrollX - dropdownWidth
+      const maxLeft = window.scrollX + window.innerWidth - gutter - dropdownWidth
+      const minLeft = window.scrollX + gutter
+      const clampedLeft = Math.max(minLeft, Math.min(desiredLeft, maxLeft))
+      const top = rect.bottom + window.scrollY + gutter
+      setDropdownPos({ top, left: clampedLeft })
+    }
+    if (showMonthDropdown) {
+      document.addEventListener("mousedown", handleClickOutside)
+      window.addEventListener("resize", updateDropdownPos)
+      window.addEventListener("scroll", updateDropdownPos, true)
+      // hitung saat buka
+      updateDropdownPos()
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside)
+      window.removeEventListener("resize", updateDropdownPos)
+      window.removeEventListener("scroll", updateDropdownPos, true)
+    }
+  }, [showMonthDropdown])
+
+  // Calculate percentages for employment status
+  const permanentPercentage =
+    employmentStatus.total > 0 ? (employmentStatus.permanent / employmentStatus.total) * 100 : 0
+  const contractPercentage = employmentStatus.total > 0 ? (employmentStatus.contract / employmentStatus.total) * 100 : 0
+  const probationPercentage =
+    employmentStatus.total > 0 ? (employmentStatus.probation / employmentStatus.total) * 100 : 0
+
+  // Calculate percentages for job level
+  const seniorStaffPercentage = jobLevel.total > 0 ? (jobLevel.seniorStaff / jobLevel.total) * 100 : 0
+  const middleStaffPercentage = jobLevel.total > 0 ? (jobLevel.middleStaff / jobLevel.total) * 100 : 0
+  const juniorStaffPercentage = jobLevel.total > 0 ? (jobLevel.juniorStaff / jobLevel.total) * 100 : 0
+
+  // Calculate percentages for gender
+  const malePercentage = genderData.total > 0 ? (genderData.male / genderData.total) * 100 : 0
+  const femalePercentage = genderData.total > 0 ? (genderData.female / genderData.total) * 100 : 0
+
+  // Calculate angles for donut chart
+  const maleAngle = (malePercentage / 100) * 360
+  const femaleAngle = (femalePercentage / 100) * 360
+
+  const createDonutPath = (startAngle: number, endAngle: number, innerRadius: number, outerRadius: number) => {
+    const start = polarToCartesian(50, 50, outerRadius, endAngle)
+    const end = polarToCartesian(50, 50, outerRadius, startAngle)
+    const innerStart = polarToCartesian(50, 50, innerRadius, endAngle)
+    const innerEnd = polarToCartesian(50, 50, innerRadius, startAngle)
+
+    const largeArcFlag = endAngle - startAngle <= 180 ? "0" : "1"
+
+    return [
+      "M",
+      start.x,
+      start.y,
+      "A",
+      outerRadius,
+      outerRadius,
+      0,
+      largeArcFlag,
+      0,
+      end.x,
+      end.y,
+      "L",
+      innerEnd.x,
+      innerEnd.y,
+      "A",
+      innerRadius,
+      innerRadius,
+      0,
+      largeArcFlag,
+      1,
+      innerStart.x,
+      innerStart.y,
+      "Z",
+    ].join(" ")
+  }
+
+  const polarToCartesian = (centerX: number, centerY: number, radius: number, angleInDegrees: number) => {
+    const angleInRadians = ((angleInDegrees - 90) * Math.PI) / 180.0
+    return {
+      x: centerX + radius * Math.cos(angleInRadians),
+      y: centerY + radius * Math.sin(angleInRadians),
+    }
+  }
+
+  const monthNames = [
+    "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+    "Juli", "Agustus", "September", "Oktober", "November", "Desember"
+  ]
+
+  const monthNamesShort = [
+    "Jan", "Feb", "Mar", "Apr", "Mei", "Jun",
+    "Jul", "Agu", "Sep", "Okt", "Nov", "Des"
+  ]
+
+  // Current month/year for dropdown styling (past/current months black, future months gray)
+  const currentMonth = new Date().getMonth() + 1
+  const currentYear = new Date().getFullYear()
+
+  const filteredBirthdays = allBirthdays.filter((b) => {
+    const [ , month ] = b.birth_date.split("-").map(Number)
+    return month === selectedMonth
+  })
+  .map((b) => {
+    // Hitung umur pada tahun yang dipilih (umur saat ulang tahun di tahun tersebut)
+    const [year] = b.birth_date.split("-").map(Number)
+    const age = selectedYear - year
+    return { ...b, age }
+  })
+
+  // Onboarding Calendar Component
+  const OnboardingCalendar = () => {
+    const today = new Date()
+    const currentMonth = today.getMonth()
+    const currentYear = today.getFullYear()
+    
+
+    const getDaysInMonth = (month: number, year: number) => {
+      return new Date(year, month + 1, 0).getDate()
+    }
+
+    const getFirstDayOfMonth = (month: number, year: number) => {
+      return new Date(year, month, 1).getDay()
+    }
+
+    const daysInMonth = getDaysInMonth(calendarMonth, calendarYear)
+    const firstDay = getFirstDayOfMonth(calendarMonth, calendarYear)
+    const days = []
+
+    // Add empty cells for days before the first day of the month
+    for (let i = 0; i < firstDay; i++) {
+      days.push(null)
+    }
+
+    // Add days of the month
+    for (let day = 1; day <= daysInMonth; day++) {
+      days.push(day)
+    }
+
+    const isToday = (day: number) => {
+      return day === today.getDate() && 
+             calendarMonth === today.getMonth() && 
+             calendarYear === today.getFullYear()
+    }
+
+    const isWeekend = (day: number) => {
+      const dayOfWeek = new Date(calendarYear, calendarMonth, day).getDay()
+      return dayOfWeek === 0 || dayOfWeek === 6
+    }
+
+    const isFutureDay = (day: number) => {
+      const cellDate = new Date(calendarYear, calendarMonth, day)
+      const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+      return cellDate > todayStart
+    }
+
+    const navigateMonth = (direction: 'prev' | 'next') => {
+      if (direction === 'prev') {
+        if (calendarMonth === 0) {
+          setCalendarMonth(11)
+          setCalendarYear(calendarYear - 1)
+        } else {
+          setCalendarMonth(calendarMonth - 1)
+        }
+      } else {
+        if (calendarMonth === 11) {
+          setCalendarMonth(0)
+          setCalendarYear(calendarYear + 1)
+        } else {
+          setCalendarMonth(calendarMonth + 1)
+        }
+      }
+    }
+
+    return (
+      <div className="space-y-4">
+        {/* Calendar Header */}
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold text-gray-900">
+            {monthNames[calendarMonth]} {calendarYear}
+          </h3>
+          <div className="flex gap-1">
+            <button
+              onClick={() => navigateMonth('prev')}
+              className="p-1 hover:bg-gray-100 rounded transition-colors"
+            >
+              <ChevronUp className="h-4 w-4 rotate-[-90deg]" />
+            </button>
+            <button
+              onClick={() => navigateMonth('next')}
+              className="p-1 hover:bg-gray-100 rounded transition-colors"
+            >
+              <ChevronUp className="h-4 w-4 rotate-90" />
+            </button>
+          </div>
+        </div>
+
+        {/* Calendar Grid */}
+        <div className="space-y-2">
+          {/* Day headers */}
+          <div className="grid grid-cols-7 gap-1 text-center">
+            {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((day, index) => (
+              <div key={index} className="text-xs font-medium text-gray-500 py-2">
+                {day}
+              </div>
+            ))}
+          </div>
+
+          {/* Calendar days */}
+          <div className="grid grid-cols-7 gap-1">
+            {days.map((day, index) => {
+              if (day === null) {
+                return <div key={index} className="h-8"></div>
+              }
+
+              const isCurrentDay = isToday(day)
+              const isWeekendDay = isWeekend(day)
+              const isFuture = isFutureDay(day)
+
+              return (
+                <div
+                  key={index}
+                  className={`h-8 flex items-center justify-center text-sm rounded-md transition-colors cursor-pointer ${
+                    isCurrentDay
+                      ? 'bg-blue-500 text-white font-semibold'
+                      : isFuture
+                      ? 'text-gray-400'
+                      : isWeekendDay
+                      ? 'text-red-500 hover:bg-red-50'
+                      : 'text-gray-900 hover:bg-gray-100'
+                  }`}
+                >
+                  {day}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
-    <div className="space-y-6 p-6 bg-gray-50 min-h-screen">
+    <div className="space-y-6 p-6 bg-gray-50 min-h-screen text-black">
+      {/* Judul */}
       <div className="flex flex-col gap-2">
-        <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-gray-500">Welcome to HRIS management dashboard</p>
+        <h1 className="text-3xl font-bold text-gray-900">Main Dashboard</h1>
+        <p className="text-lg text-gray-600 font-medium">{greeting}, Here's what's going on today</p>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        <Card className="overflow-hidden border-none shadow-md transition-all hover:shadow-lg">
-          <div className="absolute top-0 right-0 h-full w-1"></div>
+        {/* Total Employees */}
+        <Card className="overflow-hidden border border-gray-200 bg-white shadow-md transition-all hover:shadow-lg">
+          <div className="absolute top-0 right-0 h-full w-1 "></div>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-gray-500">Total Employees</CardTitle>
             <Users className="h-5 w-5 text-blue-500" />
           </CardHeader>
           <CardContent>
             {isLoading ? (
-              <div className="h-8 w-16 animate-pulse rounded bg-gray-300"></div>
+              <div className="h-8 w-16 animate-pulse rounded bg-gray-200"></div>
             ) : error ? (
               <div className="text-sm text-red-500">Failed to load data</div>
             ) : (
@@ -317,322 +670,533 @@ export default function DashboardPage() {
             )}
           </CardContent>
         </Card>
-
-        <Card className="overflow-hidden border-none shadow-md transition-all hover:shadow-lg">
-          <div className="absolute top-0 right-0 h-full w-1 "></div>
+        
+        {/* Branch */}
+        <Card className="overflow-hidden border border-gray-200 bg-white shadow-md transition-all hover:shadow-lg">
+          <div className="absolute top-0 right-0 h-full w-1"></div>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-gray-500">Overtime Submissions</CardTitle>
-            <Clock className="h-5 w-5 text-green-500" />
+            <CardTitle className="text-sm font-medium text-gray-500">Branch</CardTitle>
+            <UserCheck className="h-5 w-5 text-purple-500" />
           </CardHeader>
           <CardContent>
             {isLoading ? (
               <div className="h-8 w-16 animate-pulse rounded bg-gray-200"></div>
-            ) : error ? (
-              <div className="text-sm text-red-500">Failed to load data</div>
             ) : (
               <>
-                <div className="text-3xl font-bold text-gray-900">{overtimeCount}</div>
-                <p className="text-xs text-gray-500 mt-1">+{Math.floor(overtimeCount * 0.15)} from last month</p>
+                <div className="text-3xl font-bold text-gray-900">{branchCount}</div>
+                <p className="text-xs text-gray-500 mt-1">Active branches</p>
               </>
             )}
           </CardContent>
         </Card>
 
-        <Card className="overflow-hidden border-none shadow-md transition-all hover:shadow-lg">
+        {/* Departments */}
+        <Card className="overflow-hidden border border-gray-200 bg-white shadow-md transition-all hover:shadow-lg">
           <div className="absolute top-0 right-0 h-full w-1 "></div>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-gray-500">Brand Category</CardTitle>
-            <Tag className="h-5 w-5 text-purple-500" />
+            <CardTitle className="text-sm font-medium text-gray-500">Departments</CardTitle>
+            <Building2 className="h-5 w-5 text-green-500" />
           </CardHeader>
           <CardContent>
             {isLoading ? (
               <div className="h-8 w-16 animate-pulse rounded bg-gray-200"></div>
-            ) : error ? (
-              <div className="text-sm text-red-500">Failed to load data</div>
             ) : (
               <>
-                <div className="text-3xl font-bold text-gray-900">{brandCategoryCount}</div>
-                <p className="text-xs text-gray-500 mt-1">Overtime in Brand category</p>
+                <div className="text-3xl font-bold text-gray-900">{departmentCount}</div>
+                <p className="text-xs text-gray-500 mt-1">Active departments</p>
               </>
             )}
           </CardContent>
         </Card>
 
-        <Card className="overflow-hidden border-none shadow-md transition-all hover:shadow-lg">
+        {/* Company */}
+        <Card className="overflow-hidden border border-gray-200 bg-white shadow-md transition-all hover:shadow-lg">
           <div className="absolute top-0 right-0 h-full w-1 "></div>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-gray-500">Inhouse Category</CardTitle>
-            <Home className="h-5 w-5 text-amber-500" />
           </CardHeader>
           <CardContent>
             {isLoading ? (
-              <div className="h-8 w-16 animate-pulse rounded bg-gray-200"></div>
-            ) : error ? (
-              <div className="text-sm text-red-500">Failed to load data</div>
+              <div className="space-y-2">
+                <div className="h-4 w-28 animate-pulse rounded bg-gray-200"></div>
+                <div className="h-4 w-24 animate-pulse rounded bg-gray-200"></div>
+                <div className="h-4 w-20 animate-pulse rounded bg-gray-200"></div>
+              </div>
             ) : (
-              <>
-                <div className="text-3xl font-bold text-gray-900">{inhouseCategoryCount}</div>
-                <p className="text-xs text-gray-500 mt-1">Overtime in Inhouse category</p>
-              </>
+              <div className="grid grid-cols-3 gap-2 text-center">
+                <div>
+                  <div className="text-xs text-gray-500">Cretivox</div>
+                  <div className="text-2xl font-bold text-gray-900">{companyCounts.cretivox}</div>
+                </div>
+                <div>
+                  <div className="text-xs text-gray-500">Condfe</div>
+                  <div className="text-2xl font-bold text-gray-900">{companyCounts.condfe}</div>
+                </div>
+                <div>
+                  <div className="text-xs text-gray-500">OGS</div>
+                  <div className="text-2xl font-bold text-gray-900">{companyCounts.ogs}</div>
+                </div>
+              </div>
             )}
           </CardContent>
         </Card>
       </div>
 
-      {/* Charts Section */}
-      <div className="grid gap-6 lg:grid-cols-2 text-black">
-        {/* Department Overtime Chart */}
-        <Card className="border-none shadow-md">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-lg sm:text-xl font-semibold">Overtime Submissions by Department</CardTitle>
-              <BarChart3 className="h-5 w-5 text-gray-500" />
+      {/* Employment Status, Job Level, and Gender Diversity */}
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        {/* Employment Status */}
+        <Card className="border border-gray-200 bg-white shadow-md transition-all hover:shadow-lg">
+          <CardHeader className="flex flex-row items-center justify-between pb-4">
+            <div className="flex items-center gap-2">
+              <CardTitle className="text-lg font-semibold">Employment Status</CardTitle>
             </div>
-            <p className="text-xs sm:text-sm text-gray-500 mt-1">Number of overtime submissions by department</p>
           </CardHeader>
-          <CardContent className="p-2 sm:p-6">
+          <CardContent className="space-y-4">
             {isLoading ? (
-              <div className="h-[250px] sm:h-[300px] w-full animate-pulse rounded bg-gray-200"></div>
-            ) : error ? (
-              <div className="text-center py-6 text-red-500">Failed to load department overtime data</div>
+              <div className="space-y-3">
+                <div className="h-4 w-full animate-pulse rounded bg-gray-200"></div>
+                <div className="h-6 w-full animate-pulse rounded bg-gray-200"></div>
+                <div className="space-y-2">
+                  {[...Array(3)].map((_, i) => (
+                    <div key={i} className="h-4 w-full animate-pulse rounded bg-gray-200"></div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <>
+                {/* Progress Bar */}
+                <div className="space-y-2">
+                  <div className="flex justify-between text-xs text-gray-500">
+                    <span>0%</span>
+                    <span>100%</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                    <div className="h-full flex">
+                      <div
+                        className="bg-blue-500 h-full transition-all duration-500"
+                        style={{ width: `${permanentPercentage}%` }}
+                      ></div>
+                      <div
+                        className="bg-orange-500 h-full transition-all duration-500"
+                        style={{ width: `${contractPercentage}%` }}
+                      ></div>
+                      <div
+                        className="bg-purple-500 h-full transition-all duration-500"
+                        style={{ width: `${probationPercentage}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Statistics */}
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-medium text-gray-700">Total</span>
+                    <span className="text-sm font-semibold text-gray-900">{employmentStatus.total}</span>
+                  </div>
+
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 bg-blue-500 rounded-sm"></div>
+                      <span className="text-sm text-gray-700">Permanent</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-semibold text-gray-900">{employmentStatus.permanent}</span>
+                      <span className="text-sm text-gray-500">{permanentPercentage.toFixed(1)}%</span>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 bg-orange-500 rounded-sm"></div>
+                      <span className="text-sm text-gray-700">Contract</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-semibold text-gray-900">{employmentStatus.contract}</span>
+                      <span className="text-sm text-gray-500">{contractPercentage.toFixed(1)}%</span>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 bg-purple-500 rounded-sm"></div>
+                      <span className="text-sm text-gray-700">Probation</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-semibold text-gray-900">{employmentStatus.probation}</span>
+                      <span className="text-sm text-gray-500">{probationPercentage.toFixed(1)}%</span>
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Job Level */}
+        <Card className="border border-gray-200 bg-white shadow-md transition-all hover:shadow-lg">
+          <CardHeader className="flex flex-row items-center justify-between pb-4">
+            <div className="flex items-center gap-2">
+              <CardTitle className="text-lg font-semibold">Job Level</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {isLoading ? (
+              <div className="space-y-3">
+                <div className="h-4 w-full animate-pulse rounded bg-gray-200"></div>
+                <div className="h-6 w-full animate-pulse rounded bg-gray-200"></div>
+                <div className="space-y-2">
+                  {[...Array(4)].map((_, i) => (
+                    <div key={i} className="h-4 w-full animate-pulse rounded bg-gray-200"></div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <>
+                {/* Progress Bar */}
+                <div className="space-y-2">
+                  <div className="flex justify-between text-xs text-gray-500">
+                    <span>0%</span>
+                    <span>100%</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                    <div className="h-full flex">
+                      <div
+                        className="bg-blue-500 h-full transition-all duration-500"
+                        style={{ width: `${seniorStaffPercentage}%` }}
+                      ></div>
+                      <div
+                        className="bg-orange-500 h-full transition-all duration-500"
+                        style={{ width: `${middleStaffPercentage}%` }}
+                      ></div>
+                      <div
+                        className="bg-purple-500 h-full transition-all duration-500"
+                        style={{ width: `${juniorStaffPercentage}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Statistics */}
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-medium text-gray-700">Total</span>
+                    <span className="text-sm font-semibold text-gray-900">{jobLevel.total}</span>
+                  </div>
+
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 bg-blue-500 rounded-sm"></div>
+                      <span className="text-sm text-gray-700">Senior</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-semibold text-gray-900">{jobLevel.seniorStaff}</span>
+                      <span className="text-sm text-gray-500">{seniorStaffPercentage.toFixed(1)}%</span>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 bg-orange-500 rounded-sm"></div>
+                      <span className="text-sm text-gray-700">Middle</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-semibold text-gray-900">{jobLevel.middleStaff}</span>
+                      <span className="text-sm text-gray-500">{middleStaffPercentage.toFixed(1)}%</span>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 bg-purple-500 rounded-sm"></div>
+                      <span className="text-sm text-gray-700">Junior</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-semibold text-gray-900">{jobLevel.juniorStaff}</span>
+                      <span className="text-sm text-gray-500">{juniorStaffPercentage.toFixed(1)}%</span>
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Gender */}
+        <Card className="border border-gray-200 bg-white shadow-md transition-all hover:shadow-lg">
+          <CardHeader className="flex flex-row items-center justify-between pb-4">
+            <div className="flex items-center gap-2">
+              <CardTitle className="text-lg font-semibold">Gender</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {isLoading ? (
+              <div className="space-y-3">
+                <div className="h-24 w-24 mx-auto animate-pulse rounded-full bg-gray-200"></div>
+                <div className="space-y-2">
+                  {[...Array(2)].map((_, i) => (
+                    <div key={i} className="h-4 w-full animate-pulse rounded bg-gray-200"></div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <>
+                {/* Donut Chart */}
+                <div className="flex justify-center mb-4">
+                  <div className="relative">
+                    <svg width="120" height="120" viewBox="0 0 100 100" className="transform -rotate-90">
+                      {/* Male segment */}
+                      <path
+                        d={createDonutPath(0, maleAngle, 25, 40)}
+                        fill="#3b82f6"
+                        className="transition-all duration-500"
+                      />
+                      {/* Female segment */}
+                      <path
+                        d={createDonutPath(maleAngle, 360, 25, 40)}
+                        fill="#db2777"
+                        className="transition-all duration-500"
+                      />
+                    </svg>
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <span className="text-xl font-bold text-gray-900">{genderData.total}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Statistics */}
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 bg-blue-500 rounded-sm"></div>
+                      <span className="text-sm text-gray-700">Male</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-semibold text-gray-900">{genderData.male}</span>
+                      <span className="text-sm text-gray-500">{malePercentage.toFixed(1)}%</span>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 bg-pink-500 rounded-sm"></div>
+                      <span className="text-sm text-gray-700">Female</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-semibold text-gray-900">{genderData.female}</span>
+                      <span className="text-sm text-gray-500">{femalePercentage.toFixed(1)}%</span>
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Onboarding Calendar */}
+        <Card className="overflow-hidden border border-gray-200 shadow-md transition-all hover:shadow-lg bg-white relative">
+          <div className="absolute top-0 right-0 h-full w-1"></div>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+          </CardHeader>
+          <CardContent>
+            <OnboardingCalendar />
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Birthdays + Attendance Clock-in Chart */}
+      <div className="grid gap-6 lg:grid-cols-2 mt-4">
+        {/* Birthdays Card */}
+        <Card className="overflow-hidden border border-gray-200 shadow-md transition-all hover:shadow-lg bg-white relative">
+          <div className="absolute top-0 right-0 h-full w-1 "></div>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-lg font-bold black flex items-center gap-2">
+              <span className="text-lg"></span> Birthdays
+            </CardTitle>
+            <div className="relative">
+              <button
+                type="button"
+                className="focus:outline-none"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setShowMonthDropdown((prev) => !prev)
+                }}
+                id="calendar-btn"
+              >
+                <Calendar className="h-5 w-5 text-black cursor-pointer" />
+              </button>
+              {showMonthDropdown && (
+                <div
+                  id="month-dropdown"
+                  className="fixed z-50 w-56 rounded-md border border-gray-200 bg-white shadow-lg"
+                  style={{ top: dropdownPos.top, left: dropdownPos.left }}
+                >
+                  <div className="flex items-center justify-between px-3 py-2 border-b">
+                    <span className="text-sm font-medium">{selectedYear}</span>
+                    <div className="flex flex-col -my-2">
+                      <button
+                        type="button"
+                        className="p-1 hover:bg-gray-100 rounded"
+                        onClick={() => setSelectedYear((y) => y + 1)}
+                      >
+                        <ChevronUp className="h-4 w-4" />
+                      </button>
+                      <button
+                        type="button"
+                        className="p-1 hover:bg-gray-100 rounded"
+                        onClick={() => setSelectedYear((y) => y - 1)}
+                      >
+                        <ChevronDown className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-4 gap-2 p-3">
+                    {monthNamesShort.map((name, idx) => (
+                      <button
+                        key={idx}
+                        className={`text-sm px-2 py-2 rounded-md text-center transition-colors ${
+                          selectedMonth === idx + 1
+                            ? "bg-blue-500 text-white"
+                            : (selectedYear > currentYear || (selectedYear === currentYear && idx + 1 > currentMonth))
+                                ? "text-gray-400"
+                                : "text-gray-900 hover:bg-gray-100"
+                        }`}
+                        onClick={() => {
+                          setSelectedMonth(idx + 1)
+                          setShowMonthDropdown(false)
+                        }}
+                      >
+                        {name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="max-h-[260px] overflow-y-auto pr-2">
+              {isLoading ? (
+                <div className="h-8 w-16 animate-pulse rounded bg-gray-200"></div>
+              ) : filteredBirthdays.length === 0 ? (
+                <div className="text-sm text-gray-500">Tidak ada yang berulang tahun bulan {monthNames[selectedMonth-1]}</div>
+              ) : (
+                <ul className="space-y-2">
+                  {filteredBirthdays.map((b, idx) => {
+                  const today = new Date()
+                  const [year, month, day] = b.birth_date.split("-").map(Number)
+                  const isToday = today.getDate() === day && (today.getMonth() + 1) === month
+                  return (
+                    <li
+                      key={idx}
+                      className={`flex items-center gap-3 p-2 rounded-lg transition-all ${isToday ? 'bg-blue-50 border border-blue-300 shadow scale-[1.02]' : 'hover:bg-gray-50'}`}
+                    >
+                      {isToday && <span className="text-xl">🎉</span>}
+                      <Avatar className="h-12 w-12">
+                        <AvatarImage 
+                          src={b.profile_picture} 
+                          alt={b.name}
+                          className="object-cover"
+                        />
+                        <AvatarFallback className="bg-gray-200 text-gray-600 font-semibold">
+                          {b.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex flex-col flex-1">
+                        <span className={`font-semibold ${isToday ? 'text-blue-700' : 'text-gray-900'}`}>{b.name}</span>
+                        <span className="text-xs text-gray-500">
+                          {new Date(b.birth_date).toLocaleDateString("id-ID", {
+                            day: "2-digit",
+                            month: "long",
+                            year: "numeric",
+                          })}
+                        </span>
+                      </div>
+                      <span className={`px-2 py-1 text-xs rounded-full font-bold ${isToday ? 'bg-blue-400 text-white shadow' : 'bg-blue-100 text-blue-700'}`}>{b.age} th</span>
+                      {isToday && (
+                        <span className="ml-2 text-lg animate-pulse">🎂</span>
+                      )}
+                    </li>
+                  )
+                  })}
+                </ul>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Attendance Clock-in per Day (this month) */}
+        <Card className="overflow-hidden border border-gray-200 shadow-md transition-all hover:shadow-lg bg-white relative">
+          <div className="absolute top-0 right-0 h-full w-1 mt-11"></div>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-lg font-bold black flex items-center gap-2">
+              Attendance — Clock In per Day
+            </CardTitle>
+            <div className="flex items-center gap-2">
+              <select
+                className="border border-gray-300 rounded-md px-2 py-1 text-sm bg-white text-black"
+                value={attendanceMonth}
+                onChange={(e) => setAttendanceMonth(parseInt(e.target.value, 10))}
+              >
+                {monthNamesShort.map((name, idx) => (
+                  <option key={idx} value={idx + 1}>{name}</option>
+                ))}
+              </select>
+              <select
+                className="border border-gray-300 rounded-md px-2 py-1 text-sm bg-white text-black"
+                value={attendanceYear}
+                onChange={(e) => setAttendanceYear(parseInt(e.target.value, 10))}
+              >
+                {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 2 + i).map((y) => (
+                  <option key={y} value={y}>{y}</option>
+                ))}
+              </select>
+            </div>
+          </CardHeader>
+          <CardContent className="pt-10">
+            {attendanceLoading ? (
+              <div className="h-[240px] w-full animate-pulse rounded bg-gray-200"></div>
             ) : (
               <ChartContainer
-                config={{
-                  count: {
-                    label: "Overtime Submissions",
-                    color: "hsl(221, 83%, 53%)",
-                  },
-                }}
-                className="h-[250px] sm:h-[300px] w-full"
+                config={{ count: { label: "Clock In", color: "hsl(221, 83%, 53%)" } }}
+                className="h-[240px] w-full"
               >
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart
-                    data={departmentOvertimeData}
-                    margin={{
-                      left: 5,
-                      right: 5,
-                      top: 10,
-                      bottom: 50,
-                    }}
+                    data={attendanceCounts.map((x) => ({
+                      dayLabel: String(x.day),
+                      count: x.count,
+                    }))}
+                    margin={{ left: 5, right: 5, top: 10, bottom: 30 }}
                   >
                     <XAxis
-                      dataKey="shortName"
+                      dataKey="dayLabel"
                       tick={{ fontSize: 10 }}
                       interval={0}
-                      angle={-45}
-                      textAnchor="end"
-                      height={60}
+                      height={30}
                       className="text-xs"
                     />
-                    <YAxis tick={{ fontSize: 10 }} allowDecimals={false} domain={[0, "dataMax"]} width={30} />
+                    <YAxis tick={{ fontSize: 10 }} allowDecimals={false} width={28} />
                     <Tooltip
                       content={({ active, payload }) => {
                         if (active && payload && payload.length) {
-                          const data = payload[0].payload
                           return (
-                            <div className="bg-white p-2 sm:p-3 border border-gray-200 rounded-lg shadow-lg text-xs sm:text-sm">
-                              <p className="font-medium">{data.department}</p>
-                              <p className="text-blue-600">
-                                <span className="font-medium">{payload[0].value}</span> overtime submissions
-                              </p>
+                            <div className="bg-white p-2 border border-gray-200 rounded shadow text-xs">
+                              <div>Clock In: <span className="font-semibold">{payload[0].value}</span></div>
                             </div>
                           )
                         }
                         return null
                       }}
                     />
-                    <Bar
-                      dataKey="count"
-                      fill="var(--color-count)"
-                      radius={[2, 2, 0, 0]}
-                      className="hover:opacity-80 transition-opacity"
-                    />
+                    <Bar dataKey="count" fill="var(--color-count)" radius={[2, 2, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </ChartContainer>
             )}
           </CardContent>
         </Card>
-
-        {/* Branch Overtime Donut Chart */}
-        <Card className="border-none shadow-md">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-lg sm:text-xl font-semibold">Overtime by Branch</CardTitle>
-              <PieChart className="h-5 w-5 text-gray-500" />
-            </div>
-            <p className="text-xs sm:text-sm text-gray-500 mt-1">Distribution of overtime submissions by branch</p>
-          </CardHeader>
-          <CardContent className="p-2 sm:p-6">
-            {isLoading ? (
-              <div className="h-[250px] sm:h-[300px] w-full animate-pulse rounded bg-gray-200"></div>
-            ) : error ? (
-              <div className="text-center py-6 text-red-500">Failed to load branch overtime data</div>
-            ) : branchOvertimeData.length === 0 ? (
-              <div className="text-center py-6 text-gray-500">No branch overtime data available</div>
-            ) : (
-              <ChartContainer
-                config={{
-                  branch: {
-                    label: "Branch",
-                  },
-                }}
-                className="h-[250px] sm:h-[300px] w-full"
-              >
-                <ResponsiveContainer width="100%" height="100%">
-                  <RechartsPieChart margin={{ top: 5, right: 5, bottom: 5, left: 5 }}>
-                    <Pie
-                      data={branchOvertimeData}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={({ branch, percentage }) => {
-                        // Only show label if there's enough space
-                        return branchOvertimeData.length <= 4 ? `${branch}: ${percentage}%` : `${percentage}%`
-                      }}
-                      outerRadius="70%"
-                      innerRadius="40%"
-                      fill="#8884d8"
-                      dataKey="count"
-                      nameKey="branch"
-                      className="text-xs"
-                    >
-                      {branchOvertimeData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      content={({ active, payload }) => {
-                        if (active && payload && payload.length) {
-                          const data = payload[0].payload
-                          return (
-                            <div className="bg-white p-2 sm:p-3 border border-gray-200 rounded-lg shadow-lg text-xs sm:text-sm">
-                              <p className="font-medium">{data.branch}</p>
-                              <p className="text-gray-600">
-                                <span className="font-medium">{data.count}</span> overtime submissions
-                              </p>
-                              <p className="text-gray-600">
-                                <span className="font-medium">{data.percentage}%</span> of total
-                              </p>
-                            </div>
-                          )
-                        }
-                        return null
-                      }}
-                    />
-                    <Legend
-                      verticalAlign="bottom"
-                      align="center"
-                      layout="horizontal"
-                      wrapperStyle={{
-                        paddingTop: "10px",
-                        fontSize: "12px",
-                      }}
-                      formatter={(value, entry) => {
-                        const branchData = branchOvertimeData.find(b => b.branch === value)
-                        return (
-                          <span style={{ color: entry.color, fontSize: "12px" }}>
-                            {branchData ? `${branchData.branch}: ${branchData.count}` : value}
-                          </span>
-                        )
-                      }}
-                    />
-                    {/* Center text - responsive sizing */}
-                    <text
-                      x="50%"
-                      y="46%"
-                      textAnchor="middle"
-                      dominantBaseline="middle"
-                      className="fill-gray-900 text-3xl font-bold"
-                    >
-                      {totalSubmissions}
-                    </text>
-                    <text
-                      x="50%"
-                      y="48%"
-                      dy={15}
-                      textAnchor="middle"
-                      dominantBaseline="middle"
-                      className="fill-gray-500 text-base sm:text-sm"
-                    >
-                      Total
-                    </text>
-                  </RechartsPieChart>
-                </ResponsiveContainer>
-              </ChartContainer>
-            )}
-          </CardContent>
-        </Card>
       </div>
 
-      {/* Employee Overtime Ranking Section */}
-      <Card className="border-none shadow-md text-black">
-        <CardHeader className="flex flex-row items-center justify-between pb-2">
-          <div>
-            <CardTitle className="text-xl font-semibold">Masih Di Kantor? Board</CardTitle>
-            <p className="text-sm text-gray-500 mt-1">Sipaling betah di kantor</p>
-          </div>
-          <Trophy className="h-5 w-5 text-amber-500" />
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="space-y-2">
-              {[...Array(5)].map((_, i) => (
-                <div key={i} className="h-10 w-full animate-pulse rounded bg-gray-200"></div>
-              ))}
-            </div>
-          ) : error ? (
-            <div className="text-center py-6 text-red-500">Failed to load employee ranking data</div>
-          ) : employeeOvertimeRanking.length === 0 ? (
-            <div className="text-center py-6 text-gray-500">No employee overtime data available</div>
-          ) : (
-            <div className="overflow-x-auto max-h-[500px] overflow-y-auto border border-gray-200 rounded-lg">
-              <Table>
-                <TableHeader className="sticky top-0 bg-white z-10">
-                  <TableRow>
-                    <TableHead className="w-12 text-center bg-white font-bold text-2xl">#</TableHead>
-                    <TableHead className="bg-white font-bold text-lg">Employee Name</TableHead>
-                    <TableHead className="bg-white font-bold text-lg">Department</TableHead>
-                    <TableHead className="text-right bg-white font-bold text-lg">Total Hours</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {employeeOvertimeRanking.map((employee, index) => (
-                    <TableRow key={index} className={index < 3 ? "bg-amber-50" : index < 10 ? "bg-gray-50" : ""}>
-                      <TableCell className="font-medium text-center">
-                        {index === 0 ? (
-                          <span className="inline-flex items-center justify-center w-6 h-6 bg-amber-500 text-white rounded-full text-xs">
-                            1
-                          </span>
-                        ) : index === 1 ? (
-                          <span className="inline-flex items-center justify-center w-6 h-6 bg-gray-400 text-white rounded-full text-xs">
-                            2
-                          </span>
-                        ) : index === 2 ? (
-                          <span className="inline-flex items-center justify-center w-6 h-6 bg-amber-700 text-white rounded-full text-xs">
-                            3
-                          </span>
-                        ) : index < 10 ? (
-                          <span className="inline-flex items-center justify-center w-6 h-6 bg-blue-100 text-blue-800 rounded-full text-xs font-semibold">
-                            {index + 1}
-                          </span>
-                        ) : (
-                          <span className="text-gray-600 font-medium">{index + 1}</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="font-medium">{employee.name}</TableCell>
-                      <TableCell>{employee.department}</TableCell>
-                      <TableCell className="text-right">
-                        <span className="font-semibold">{employee.totalHours.toFixed(1)}</span> hours
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
     </div>
   )
 }

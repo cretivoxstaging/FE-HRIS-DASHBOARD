@@ -1,16 +1,16 @@
-import { NextResponse } from "next/server"
+import { type NextRequest, NextResponse } from "next/server"
 
-const API_URL = "https://hris-api-kappa.vercel.app/api/v1/overtime"
-const AUTH_TOKEN = "Bearer $2a$12$JSyMjCxUTNmGBlAQOQQeaOFrOdtdUmn.U/17DlvOK1t.Ot0BTRGli"
+const OVERTIME_API_URL = process.env.OVERTIME_API_URL || ""
+const API_TOKEN = Buffer.from(process.env.API_TOKEN_B64 || "", "base64").toString("utf-8")
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
     const { id, approvalType } = await request.json()
 
-    const response = await fetch(`${API_URL}/${id}`, {
+    const response = await fetch(`${OVERTIME_API_URL}/${id}`, {
       method: "PUT",
       headers: {
-        Authorization: AUTH_TOKEN,
+        Authorization: `Bearer ${API_TOKEN}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({

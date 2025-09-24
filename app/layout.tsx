@@ -13,8 +13,11 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Dashboard Overtime",
+  title: "Dashboard HRIS",
   description: "Overtime",
+  icons: {
+    icon: "/cbn.png",
+  },
 };
 
 export default function RootLayout({
