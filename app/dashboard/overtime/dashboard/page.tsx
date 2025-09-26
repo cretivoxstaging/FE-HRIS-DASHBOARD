@@ -335,7 +335,7 @@ export default function OvertimeDashboardPage() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle className="text-lg sm:text-xl font-semibold">Overtime Submissions by Department</CardTitle>
-              <BarChart3 className="h-5 w-5 text-gray-500" />
+              <BarChart3 className="h-5 w-5 text-gray-500"/>
             </div>
             <p className="text-xs sm:text-sm text-gray-500 mt-1">Number of overtime submissions by department</p>
           </CardHeader>
